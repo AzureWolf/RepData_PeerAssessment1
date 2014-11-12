@@ -7,11 +7,26 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r echo = TRUE}
+library(dplyr);
 
+unzip("activity.zip");
+activity <- tbl_df(read.csv("activity.csv", stringsAsFactors = FALSE));
+file.remove("activity.csv");
+```
 
 
 ## What is mean total number of steps taken per day?
-
+```{r echo = TRUE}
+dates <- unique(select(activity, date));
+daily <- data.frame()
+for(day in dates$date) {
+	daily <- rbind(daily, summarize(filter(activity, date == day, !is.na(steps)), mean(steps)));
+}
+hist()
+print(sapply(daily, mean, na.rm = TRUE))
+print(sapply(daily, median, na.rm = TRUE))
+```
 
 
 ## What is the average daily activity pattern?
