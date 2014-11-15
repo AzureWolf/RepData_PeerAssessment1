@@ -18,24 +18,87 @@ file.remove("activity.csv");
 
 ## What is mean total number of steps taken per day?
 ```{r echo = TRUE}
-dates <- unique(select(activity, date));
-daily <- data.frame();
-for(day in dates$date) {
-	daily <- rbind(daily, summarize(filter(activity, date == day, !is.na(steps)), sum(steps)));
+allDates <- unique(select(activity, date));
+stepsPerDay <- data.frame();
+for(day in allDates$date) {
+	stepsPerDay <- rbind(stepsPerDay, summarize(filter(activity, date == day, !is.na(steps)), sum(steps)));
 }
-colnames(daily) <- "steps";
-hist(daily$steps);
-print(sapply(daily, mean, na.rm = TRUE));
-print(sapply(daily, median, na.rm = TRUE));
+colnames(stepsPerDay) <- "total_steps";
+
+hist(stepsPerDay$total_steps);
+print(sapply(stepsPerDay, mean, na.rm = TRUE));
+print(sapply(stepsPerDay, median, na.rm = TRUE));
 ```
 
 
 ## What is the average daily activity pattern?
+```{r echo = TRUE}
+allIntervals <- unique(select(activity, interval));
+stepsPerInterval <- data.frame();
+for(x in allIntervals$interval) {
+	stepsPerInterval <- rbind(stepsPerInterval, summarize(filter(activity, interval == x, !is.na(steps)), mean(steps)));
+}
+colnames(stepsPerInterval) <- "intervalMean";
+avgStepsbyInterval <- cbind(allIntervals, stepsPerInterval);
+maxInterval <- filter(avgStepsbyInterval, intervalMean == max(intervalMean));
+allIntervals$interval <- sprintf("%04d", allIntervals$interval);
 
+plot(strptime(allIntervals$interval, "%k%M"), stepsPerInterval$intervalMean, type = "l");
+print(maxInterval$interval);
+```
 
 
 ## Imputing missing values
+```{r echo = TRUE}
+processedData <- mutate(activity, rownum = row(activity[,"steps"]), empty = is.na(activity$steps));
+print(sum(processedData$empty));
 
+getAverage <- function(rowNumber, x) {
+	getEarlier <- function(rowNumber) {
+		currentDate <- x[rowNumber, "date"];
+		if(rowNumber == 1) {
+			value <- sapply(select(x, as.character(date) == currentDate[[1]]), mean, na.rm = TRUE);
+			as.numeric(value$steps);
+		} else if(is.na(x[rowNumber - 1, "steps"])) {
+			getEarlier(rowNumber - 1);
+		} else {
+			value <- x[rowNumber - 1, "steps"];
+			as.numeric(value$steps);
+		}
+	}
 
+	getLater <- function(rowNumber) {
+		currentDate <- x[rowNumber, "date"];
+		if(rowNumber == nrow(x)){
+			value <- sapply(select(x, as.character(date) == currentDate[[1]]), mean, na.rm = TRUE);
+			as.numeric(value$steps);
+		} else if(is.na(x[rowNumber + 1, "steps"])) {
+			getLater(rowNumber + 1);
+		} else {
+			value <- x[rowNumber + 1, "steps"];
+			as.numeric(value$steps);
+		}
+	}
+	
+	mean(c(getEarlier(rowNumber), getLater(rowNumber)));
+}
+
+for(rowNumber in processedData$rownum) {
+	if(processedData[rowNumber, "empty"] == TRUE) {
+		processedData[rowNumber, "steps"] <- getAverage(rowNumber, processedData);
+	}
+}
+
+allDates <- unique(select(processedData, date));
+stepsPerDay <- data.frame();
+for(day in allDates$date) {
+	stepsPerDay <- rbind(stepsPerDay, summarize(filter(processedData, date == day, !is.na(steps)), sum(steps)));
+}
+colnames(stepsPerDay) <- "total_steps";
+
+hist(stepsPerDay$total_steps);
+print(sapply(stepsPerDay, mean, na.rm = TRUE));
+print(sapply(stepsPerDay, median, na.rm = TRUE));
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
