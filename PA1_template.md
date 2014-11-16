@@ -7,7 +7,8 @@ output:
 
 
 ## Loading and preprocessing the data
-```{r echo = TRUE}
+
+```r
 library(dplyr);
 
 unzip("activity.zip");
@@ -15,9 +16,14 @@ activity <- tbl_df(read.csv("activity.csv", stringsAsFactors = FALSE));
 file.remove("activity.csv");
 ```
 
+```
+## [1] TRUE
+```
+
 
 ## What is mean total number of steps taken per day?
-```{r echo = TRUE}
+
+```r
 getAllDates <- function(x) {
 	unique(select(x, date));
 }
@@ -42,14 +48,32 @@ getMedian <- function(stepsPerDay){
 stepsPerDay <- getTotalSteps(getAllDates(activity));
 
 hist(stepsPerDay$total_steps, xlab = "Total Steps", main = "Daily Step Frequency");
+```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
+
+```r
 print(getMean(stepsPerDay));
+```
+
+```
+## total_steps 
+##     9354.23
+```
+
+```r
 print(getMedian(stepsPerDay));
+```
+
+```
+## total_steps 
+##       10395
 ```
 
 
 ## What is the average daily activity pattern?
-```{r echo = TRUE}
+
+```r
 getAllIntervals <- function(x) {
 	unique(select(x, interval));
 }
@@ -73,14 +97,23 @@ createIntervalSteps <- function(x) {
 
 avgStepsbyInterval <- createIntervalSteps(activity);
 plot(avgStepsbyInterval$interval, avgStepsbyInterval$intervalMean, type = "l", xlab = "Interval", ylab = "Mean Steps");
+```
 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
+
+```r
 maxInterval <- filter(avgStepsbyInterval, intervalMean == max(intervalMean));
 print(maxInterval$interval);
 ```
 
+```
+## [1] 835
+```
+
 
 ## Imputing missing values
-```{r echo = TRUE}
+
+```r
 getRowNum <- function(x) {
 	mutate(x, rownum = row(x[,"steps"]))
 }
@@ -135,18 +168,43 @@ estimateNAs <- function(x) {
 
 processedActivity <- findNAs(getRowNum(activity));
 print(sum(processedActivity$empty));
+```
 
+```
+## [1] 2304
+```
+
+```r
 processedActivity <- estimateNAs(processedActivity);
 processedActivity <- select(processedActivity, -empty, -rownum);
 processedSteps <- getTotalSteps(processedActivity);
 
 hist(processedSteps$total_steps, xlab = "Total Steps", main = "Daily Step Frequency (Averaging Missing Data)");
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+
+```r
 print(getMean(processedSteps));
+```
+
+```
+## total_steps 
+##     9354.23
+```
+
+```r
 print(getMedian(processedSteps));
 ```
 
+```
+## total_steps 
+##       10395
+```
+
 ## Are there differences in activity patterns between weekdays and weekends?
-```{r echo = TRUE}
+
+```r
 findWeekends <- function(days) {
 	final <- vector();
 	for(day in days) {
@@ -180,3 +238,5 @@ mergedWeeks <- mergeWeeks(weekdaySteps, weekendSteps);
 library(lattice)
 xyplot(intervalMean ~ interval | weekdayend, mergedWeeks, layout = c(1,2), type="l", xlab = "Interval", ylab = "Average Steps")
 ```
+
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
