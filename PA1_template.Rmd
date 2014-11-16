@@ -89,6 +89,8 @@ for(rowNumber in processedData$rownum) {
 	}
 }
 
+processedData <- select(processedData, -empty, -rownum)
+
 allDates <- unique(select(processedData, date));
 stepsPerDay <- data.frame();
 for(day in allDates$date) {
@@ -102,3 +104,40 @@ print(sapply(stepsPerDay, median, na.rm = TRUE));
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r echo = TRUE}
+weeker <- function(days) {
+	final <- vector();
+	for(day in days) {
+		dayOfWeek <- as.character(weekdays(as.Date(day, "%Y-%m-%d")));
+		if(dayOfWeek == "Saturday" | dayOfWeek == "Sunday") {
+			final <- c(final, "weekend");
+		} else {
+			final <- c(final, "weekday");
+		}
+	}
+	final;
+}
+activityNew <- mutate(activity, weekdayend = weeker(date));
+
+allIntervals <- unique(select(activityNew, interval));
+stepsPerInterval <- data.frame();
+for(x in allIntervals$interval) {
+	stepsPerInterval <- rbind(stepsPerInterval, summarize(filter(activityNew, interval == x, !is.na(steps), weekdayend == "weekday"), mean(steps)));
+}
+weekdaySteps <- cbind(allIntervals, stepsPerInterval, "weekday");
+colnames(weekdaySteps) <- cbind("interval", "intervalMean", "weekdayend")
+weekdaySteps$interval <- sprintf("%04d", allIntervals$interval);
+
+stepsPerInterval <- data.frame();
+for(x in allIntervals$interval) {
+	stepsPerInterval <- rbind(stepsPerInterval, summarize(filter(activityNew, interval == x, !is.na(steps), weekdayend == "weekend"), mean(steps)));
+}
+weekendSteps <- cbind(allIntervals, stepsPerInterval, "weekend");
+colnames(weekendSteps) <- cbind("interval", "intervalMean", "weekdayend")
+weekendSteps$interval <- sprintf("%04d", allIntervals$interval);
+
+mergedWeeks <- rbind(weekdaySteps, weekendSteps);
+
+library(lattice)
+xyplot(intervalMean ~ as.numeric(interval) | weekdayend, mergedWeeks, layout = c(1,2), type="l")
+```
